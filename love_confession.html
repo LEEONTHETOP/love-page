@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>给蔡蔡的告白</title>
+  <!-- PWA & Theme -->
+  <meta name="theme-color" content="#ff4d6d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta property="og:title" content="圣圣❤蔡蔡·专属浪漫">
+  <meta property="og:description" content="点开即满屏心动——圣圣写给蔡蔡的告白🎉">
+  <meta property="og:image" content="cover.jpg">
+  <link rel="manifest" href="manifest.json">
+  <style>
+    :root{
+      --pink:#ff4d6d;--light:#ffeaf2;--sky1:#ff9a9e;--sky2:#fad0c4;--sky3:#fbc2eb;--sky4:#a6c1ee;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    html,body{height:100%;font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden;}
+    body{display:flex;justify-content:center;align-items:center;background:linear-gradient(-45deg,var(--sky1),var(--sky2),var(--sky3),var(--sky4));background-size:400% 400%;animation:bgMove 30s ease-in-out infinite;}
+    @keyframes bgMove{0%{background-position:0 50%;filter:hue-rotate(0deg);}25%{background-position:100% 50%;filter:hue-rotate(60deg);}50%{background-position:0 50%;filter:hue-rotate(120deg);}75%{background-position:100% 50%;filter:hue-rotate(240deg);}100%{background-position:0 50%;filter:hue-rotate(360deg);}}
+
+    /* Panels */
+    #main,#lyricsPanel,#gamePanel{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;transition:opacity .6s ease;}
+    #lyricsPanel,#gamePanel{backdrop-filter:blur(12px) saturate(120%);background:rgba(255,255,255,.18);opacity:0;pointer-events:none;}
+    #lyricsPanel.show,#gamePanel.show{opacity:1;pointer-events:auto;}
+
+    h1{font-size:clamp(2.2rem,8vw,3.6rem);color:#fff;text-shadow:0 0 14px rgba(255,255,255,.9);margin-bottom:14px;animation:pulse 3s ease-in-out infinite;}
+    @keyframes pulse{0%,100%{text-shadow:0 0 12px rgba(255,255,255,.9);}50%{text-shadow:0 0 30px rgba(255,255,255,1);}}
+
+    p.tip{font-size:clamp(1rem,3vw,1.4rem);color:#fff;margin-bottom:24px;text-shadow:0 0 8px rgba(0,0,0,.25);max-width:85%;text-align:center;line-height:1.6;}
+
+    .btn{background:var(--pink);color:#fff;border:none;border-radius:32px;padding:16px 36px;font-size:1rem;margin:8px;box-shadow:0 10px 20px rgba(0,0,0,.18);cursor:pointer;display:flex;align-items:center;gap:8px;transition:transform .2s,box-shadow .2s;}
+    .btn:hover{box-shadow:0 12px 26px rgba(0,0,0,.28);} .btn:active{transform:scale(.93);}
+
+    /* Lyrics */
+    #lyricsBox{width:92%;max-width:620px;height:68%;overflow-y:auto;padding:22px;color:#fff;font-size:clamp(.9rem,2.5vw,1.25rem);line-height:1.85;}
+    #lyricsBox .line{opacity:.35;transition:opacity .3s,font-size .3s;white-space:pre-wrap;text-align:center;}
+    #lyricsBox .active{opacity:1;font-size:clamp(1rem,3vw,1.5rem);text-shadow:0 0 14px rgba(255,255,255,.95);}
+
+    /* Game */
+    #gameCanvas{width:100%;height:100%;touch-action:none;}
+    #scoreBoard{position:absolute;top:20px;left:50%;transform:translateX(-50%);color:#fff;font-size:1.25rem;text-shadow:0 0 6px rgba(0,0,0,.45);}
+
+    /* Full‑screen floating hearts */
+    .floatHeart{position:fixed;pointer-events:none;animation:floatUp linear infinite;will-change:transform,opacity;}
+    @keyframes floatUp{from{transform:translateY(0) scale(var(--s,1));opacity:1;}to{transform:translateY(-110vh) scale(calc(var(--s,1)*1.8));opacity:0;}}
+
+    /* Canvas overlay for whale & fish */
+    #animCanvas{position:fixed;inset:0;pointer-events:none;}
+  </style>
+</head>
+<body>
+  <canvas id="animCanvas"></canvas>
+  <!-- 主界面 -->
+  <section id="main">
+    <h1>蔡蔡，我想对你说</h1>
+    <p class="tip" id="loveLine"></p>
+    <button class="btn" id="musicBtn">🎵 播放音乐</button>
+    <div>
+      <button class="btn" id="lyricsBtn">📜 看歌词</button>
+      <button class="btn" id="gameBtn">💫 小游戏</button>
+    </div>
+  </section>
+
+  <!-- 歌词面板 -->
+  <section id="lyricsPanel">
+    <div id="lyricsBox"></div>
+    <button class="btn" id="backHome1">🏠 返回主页</button>
+  </section>
+
+  <!-- 游戏面板 -->
+  <section id="gamePanel">
+    <canvas id="gameCanvas"></canvas>
+    <div id="scoreBoard"></div>
+    <button class="btn" id="backHome2">🏠 返回主页</button>
+  </section>
+
+  <!-- 音频 -->
+  <audio id="bgm" src="日落沙滩后 - 余佳运.mp3" preload="auto" loop></audio>
+
+  <!-- 备用歌词（省略） -->
+  <script id="lrcInline" type="text/plain">[00:00.00] 作词 : Jagger Zhou/余佳运/HYBS/Alyn Wee/Karn Kaside/张三
+[00:01.00] 作曲 : HYBS/Alyn Wee/Karn Kasidej
+[00:02.00] 编曲 : HYBS
+[00:20.07]出品：网易桃气联盟
+[00:29.68]
+[00:29.69]海温柔地沉溺
+[00:33.46]躲在某个场景
+[00:35.88]沿着空荡海岸
+[00:39.65]和你轻轻摇摆
+[00:42.33]
+[00:42.51]想起了那片沙滩
+[00:45.68]伴着月色的皎白
+[00:48.29]我们什么都没有说
+[00:51.27]CAUSE BABY I AM ALL FOR YOU
+[00:54.69]
+[00:55.22]“Come and ride with me tonight”
+[00:59.73]
+[01:00.07]看着月球
+[01:03.10]慢慢坠落
+[01:06.15]牵牵你的小手
+[01:09.18]在你左右
+[01:11.83]
+[01:12.36]能不能够
+[01:15.31]躲进黑洞
+[01:18.28]再摸摸你的额头
+[01:21.50]再过好久好久
+[01:25.37]
+[01:27.02]趁着夏天你的笑容
+[01:30.53]赖在你身边不想走
+[01:35.69]可时间那么快
+[01:40.57]春去秋又来 又期待
+[01:49.37]
+[01:50.70]“Come and ride with me tonight”
+[01:54.76]
+[01:55.19]余佳运 & HYBS：
+[01:55.55]Please don’t you go
+[01:58.53]I’ll be alone
+[02:01.57]Wait until the morning
+[02:04.55]I’ll hold you close
+[02:07.45]
+[02:07.88]Please don’t you go
+[02:10.78]I’ll be alone
+[02:13.82]Wait until the morning
+[02:16.92]Ride until it’s dawning
+[02:19.52]
+[02:19.97]Please don’t you go
+[02:23.16]I’ll be alone
+[02:26.21]Wait until the morning
+[02:29.10]I’ll hold you close
+[02:31.76]
+[02:32.23]Please don’t you go
+[02:35.36]I’ll be alone
+[02:38.47]Wait until the morning
+[02:41.57]Ride until it’s dawning
+[02:50.12]
+[02:50.12]制作人：HYBS / Lukell
+[02:51.20]混音&母带工程： Did You Hear Studio
+[02:51.72]人声编辑：郭舒文@SBMS Beijing
+[02:52.24]企划统筹 : 黄雨薇/黄奕钧
+[02:52.64]监制 : 张三
+[02:53.68]出品人 : 谢奇笛
+[02:54.24]音乐营销 : 网易桃气联盟
+[02:54.86]OP : JUICEY
+[02:55.40]SP: ND Entertainment Co, Ltd
+[02:55.50]特别鸣谢: 上海安茂文化
+[02:55.57]【此版本为正式授权翻唱作品，未经著作权人许可，不得翻唱、翻录或使用】
+</script>
+
+  <script>
+  /* ========== 随机情话 ========== */
+  const lines=[
+    '遇见你，是我最美丽的意外，余生请多指教~','在每一个想你的夜里，我把星星都数给月亮听。','世界很大，但我的眼里只有你；距离很远，但我的心里全是你。','我想把全世界最温柔的风，和最闪耀的星，都送给你。','李习圣的未来里，一定要有杨娜的名字。','异地只隔两座城，爱却让心贴得更近。','想牵着你的手，把我们的故事写成永远。','今晚月色真美，可我眼里只有你的笑容。','如果思念有声音，那一定是悄悄为你弹奏的情歌。','你的名字，是我读过最浪漫的诗。','想把我所有的热情，织进你每一个梦里。','风很温柔，因为它也想拥抱你。','在我的宇宙里，你是所有的星光。','世界因为你而变得浪漫，连风都是甜的。','每个平凡的日子，都因想你而闪闪发光。'];
+  let li=0,tip=document.getElementById('loveLine');function rotate(){tip.textContent=lines[li];li=(li+1)%lines.length;}rotate();setInterval(rotate,4000);
+
+  /* ========== 音乐播放 ========== */
+  const bgm=document.getElementById('bgm');
+  document.getElementById('musicBtn').onclick=()=>{if(bgm.paused){bgm.play();event.target.textContent='⏸️ 暂停音乐';}else{bgm.pause();event.target.textContent='🎵 播放音乐';}};
+
+  /* ========== 面板切换 ========== */
+  const main=document.getElementById('main'),lyricsPanel=document.getElementById('lyricsPanel'),gamePanel=document.getElementById('gamePanel');
+  document.getElementById('lyricsBtn').onclick=()=>{lyricsPanel.classList.add('show');main.style.opacity=0;};
+  document.getElementById('backHome1').onclick=()=>{lyricsPanel.classList.remove('show');main.style.opacity=1;};
+  document.getElementById('gameBtn').onclick=startGame;document.getElementById('backHome2').onclick=endGame;
+
+  /* ========== 全屏浮动小心心 ========== */
+  function spawnHeart(){if(!lyricsPanel.classList.contains('show')&&!gamePanel.classList.contains('show')){const h=document.createElement('div');h.className='floatHeart';h.textContent='❤';const size=Math.random()*18+16;h.style.left=Math.random()*100+'vw';h.style.bottom='-40px';h.style.fontSize=size+'px';h.style.color=`hsl(${Math.random()*360},90%,85%)`;h.style.setProperty('--s',size/24);h.style.animationDuration=(Math.random()*6+8)+'s';document.body.appendChild(h);setTimeout(()=>h.remove(),15000);} }
+  setInterval(spawnHeart,250);
+
+  /* ========== 歌词同步 ========== */
+  const lyricsBox=document.getElementById('lyricsBox');let lrc=[];
+  async function loadLyrics(){try{const t=await fetch(encodeURI('日落沙滩后 - 余佳运.lrc')).then(r=>r.ok?r.text():Promise.reject());parseLrc(t);}catch{parseLrc(document.getElementById('lrcInline').textContent);} }
+  function parseLrc(t){lrc=t.split(/\n+/).map(l=>{const m=l.match(/\[(\d+):(\d+\.\d+)\](.*)/);return m?{time:+m[1]*60+ +m[2],text:m[3]}:null;}).filter(Boolean);lrc.forEach(o=>{const d=document.createElement('div');d.className='line';d.textContent=o.text;lyricsBox.appendChild(d);o.el=d;});}
+  loadLyrics();
+  bgm.ontimeupdate=()=>{if(!lrc.length)return;const t=bgm.currentTime;let idx=lrc.findIndex((o,i)=>t<o.time&&i>0);idx=idx===-1?lrc.length-1:Math.max(0,idx-1);lrc.forEach((o,i)=>o.el.classList.toggle('active',i===idx));const cur=lrc[idx];if(cur)lyricsBox.scrollTo({top:cur.el.offsetTop-lyricsBox.clientHeight/2,behavior:'smooth'});};
+
+  /* ========== 小游戏（简版） ========== */
+  const gc=document.getElementById('gameCanvas'),gctx=gc.getContext('2d');let gW=innerWidth,gH=innerHeight;function gResize(){gW=innerWidth;gH=innerHeight;gc.width=gW;gc.height=gH;}window.addEventListener('resize',gResize);gResize();
+  let hearts=[],score=0,run=false,spawnTimer,aniId;function spGameHeart(){hearts.push({x:Math.random()*gW,y:-40,s:Math.random()*18+22,v:Math.random()*1+1.2});}
+  function drawGame(){gctx.clearRect(0,0,gW,gH);gctx.fillStyle='rgba(255,255,255,.9)';gctx.textAlign='center';gctx.font='22px sans-serif';hearts.forEach((h,i)=>{h.y+=h.v;gctx.fillText('❤',h.x,h.y);if(h.y>gH+50)hearts.splice(i,1);});aniId=requestAnimationFrame(drawGame);}gc.addEventListener('pointerdown',e=>{if(!run)return;const rect=gc.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;hearts.forEach((h,i)=>{if(Math.hypot(h.x-x,h.y-y)<h.s){hearts.splice(i,1);score++;document.getElementById('scoreBoard').textContent=`分数: ${score}`;}});});
+  function startGame(){score=0;hearts=[];run=true;document.getElementById('scoreBoard').textContent='分数: 0';gamePanel.classList.add('show');main.style.opacity=0;spawnTimer=setInterval(spGameHeart,450);drawGame();}
+  function endGame(){run=false;cancelAnimationFrame(aniId);clearInterval(spawnTimer);gamePanel.classList.remove('show');main.style.opacity=1;alert(`游戏结束！共收集 ${score} 颗爱心❤`);} 
+
+ /* ======== 爱心气球束 🎈 & 小金鱼动画 (canvas) ======== */
+const aCanvas = document.getElementById('animCanvas');
+const actx    = aCanvas.getContext('2d');
+function resize(){ aCanvas.width = innerWidth; aCanvas.height = innerHeight; }
+window.addEventListener('resize',resize); resize();
+
+/* 工具 */
+const rand = (min,max)=>Math.random()*(max-min)+min;
+
+/* 数据 */
+const balloons = [], fishes = [];
+
+/* 生成气球束：随机 X，底部起飞 */
+function spawnBalloon(){
+  balloons.push({
+    t:0,
+    x: rand(0.15*aCanvas.width, 0.85*aCanvas.width),
+    y0: aCanvas.height + 60,          // 起点略在底部之外
+    swayPhase: rand(0,Math.PI*2)      // 横向摆动相位
+  });
+}
+setInterval(spawnBalloon, 30000);     // 每 30 s 一束
+
+/* 生成小金鱼 (❤ 粒子) 与之前相同 */
+function spawnFish(){
+  fishes.push({
+    x:rand(0,aCanvas.width),
+    y:rand(0,aCanvas.height),
+    ang:rand(0,Math.PI*2),
+    s:rand(.4,.9)
+  });
+}
+setInterval(()=>{for(let i=0;i<3;i++)spawnFish();},7000);
+
+/* 主循环 */
+function draw(){
+  actx.clearRect(0,0,aCanvas.width,aCanvas.height);
+
+  /*— 金鱼 —*/
+  fishes.forEach(f=>{
+    f.x+=Math.cos(f.ang)*1.2*f.s;
+    f.y+=Math.sin(f.ang)*1.2*f.s;
+    f.ang+=rand(-.05,.05);
+    if(f.x<-40||f.x>aCanvas.width+40)f.ang=Math.PI-f.ang;
+    if(f.y<-40||f.y>aCanvas.height+40)f.ang=-f.ang;
+    actx.save();
+    actx.translate(f.x,f.y);
+    actx.rotate(f.ang);
+    actx.font=`${14*f.s}px serif`;
+    actx.fillStyle='rgba(255,255,255,.75)';
+    actx.fillText('❤',0,0);
+    actx.restore();
+  });
+
+  /*— 气球束 —*/
+  const heartSize = 24;
+  balloons.forEach((b,i)=>{
+    b.t += 1/60;                        // 60 FPS
+    const rise = b.t*40;                // 上升速度 (px/s)
+    const sway = Math.sin(b.t+ b.swayPhase)*30; // 左右摇摆
+    const x = b.x + sway;
+    const y = b.y0 - rise;
+
+    if(y < -120){ balloons.splice(i,1); return; }
+
+    // 1️⃣ 绳子
+    actx.strokeStyle = 'rgba(255,255,255,.6)';
+    actx.lineWidth   = 1;
+    actx.beginPath();
+    actx.moveTo(x,y);
+    actx.lineTo(x,y+heartSize*3);
+    actx.stroke();
+
+    // 2️⃣ 画 4 颗心组成气球束 (2 上 2 下)
+    const offsets=[[-heartSize*0.6,0],[heartSize*0.6,0],[-heartSize*0.3,heartSize*0.9],[heartSize*0.3,heartSize*0.9]];
+    offsets.forEach((off,idx)=>{
+      actx.font=`${heartSize-(idx>1?4:0)}px serif`;
+      actx.fillStyle=`rgba(255,255,255,${0.9 - idx*0.1})`;
+      actx.fillText('❤', x+off[0], y+off[1]);
+    });
+  });
+
+  requestAnimationFrame(draw);
+}
+draw();
+  /* ========== 日出 / 日落 光晕 (overlay div) ========== */
+  function sunflash(){const d=document.createElement('div');Object.assign(d.style,{position:'fixed',inset:0,background:'radial-gradient(circle at 50% 120%,rgba(255,200,100,.9) 0%,rgba(255,150,150,0) 60%)',pointerEvents:'none',opacity:0,transition:'opacity 3s linear'});document.body.appendChild(d);requestAnimationFrame(()=>d.style.opacity=1);setTimeout(()=>d.style.opacity=0,12000);setTimeout(()=>d.remove(),15000);}setInterval(sunflash,30000);
+
+  // initial spawns
+  for(let i=0;i<15;i++)spawnFish();spawnWhale();
+  </script>
+</body>
+</html>

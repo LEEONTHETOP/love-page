@@ -1,0 +1,20 @@
+{
+  "name": "给蔡蔡的告白",
+  "short_name": "圣圣❤蔡蔡",
+  "start_url": "./love_confession.html",
+  "display": "standalone",
+  "theme_color": "#ff4d6d",
+  "background_color": "#ffeaf2",
+  "icons": [
+    {
+      "src": "cover.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "cover.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
